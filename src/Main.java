@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import javax.swing.JFrame;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Scanner;
+
 import edu.uci.ics.jung.visualization.renderers.Renderer;
 
 public class Main {
@@ -14,20 +16,8 @@ public class Main {
     public static boolean IsOp(Character c) {
         if (c == '*' || c == '|' || c == '.')
             return true;
-        else return false;
+        return false;
     }
-
-    /* TO DO INFIX TO POSTFIX AND PREFIX TO POSTFIX
-    public static String InfixToPostfix(String expr) {
-        String ptf = new String();
-        for(int i = 0; i<expr.length(); i++) {
-            if(!IsOp(expr.charAt(i))) { //if in language
-                ptf = ptf.substring(0, i) + expr.charAt(i) + ptf.substring(i + 1);
-            }
-        }
-        return ptf;
-    }
-    */
 
     public static int i = 0;
     public static int posAssign = 1;
@@ -39,7 +29,6 @@ public class Main {
 
     public static void CreateBinaryTree(BinaryTree root, String expr) {
         root.value = expr.charAt(i);
-        System.out.println("We're at: " + root.value + " and i = " + i);
         if (IsOp(expr.charAt(i))) { //if char at i is operator
             int r = i;
             i--;
@@ -170,7 +159,6 @@ public class Main {
 
 
     public static void AssignLeafPositions(BinaryTree btl) {
-        System.out.println(btl.value);
         if (btl.left != null) {
             AssignLeafPositions(btl.left);
         }
@@ -180,31 +168,33 @@ public class Main {
         if(btl.left == null && btl.right == null) { //it's a leaf
             btl.position = posAssign;
             posAssign++;
-            System.out.println("Assigned pos " + btl.position + " to " + btl.value);
         }
         return;
     }
 
     public static void main(String[] args) {
+        /*
+        Input examples:
 
-        //MODIFY HERE - language stuff
-        // +
-        // infix to postfix
-        // and
-        // prefix to postfix
+        (a|b)*.a.b.b
 
+        Seminar 2 TC page 1 : (a|b.b)*.(b.a|c)*.b
 
-        //System.out.println("Alfabet: ");
-        //Scanner scanner = new Scanner(System.in);
-        //String lang = scanner.nextLine();
-        //System.out.println("Expresie: ");
-        //String expr = scanner.nextLine();
+        */
 
-        String expr = "ab.*a.ba|.";
-        ///////String expr = "ab|*a.b.b.";
+        System.out.println("Alfabet: ");
+        Scanner scanner = new Scanner(System.in);
+        String lang = scanner.nextLine();
+        System.out.println("Expresie: ");
+        String expr = scanner.nextLine();
+        System.out.println("Este in forma infixata? (y/n)");
+        String infix = scanner.nextLine();
+
+        if(infix.contains("y")) {
+            expr = InfixToPostfix.Convert(expr);
+        }
+
         expr = expr + "#.";
-
-        //System.out.println("Input: " + lang + " -> " + expr);
 
         //Binary tree stuff
         nullable = new HashMap<BinaryTree, Boolean>();
@@ -226,34 +216,38 @@ public class Main {
         i = expr.length() - 3;
         CreateBinaryTree(bt.left, expr);
 
+        //Start
+
         AssignLeafPositions(bt);
 
         ComputeNullableFirstposLastpos(bt);
 
-        //Output firstpos, lastpos, nullable
-        /*for(BinaryTree key : firstpos.keySet()) {
-            System.out.print("[" + key.position + "] " + key.value + ": firstpos -> ");
-
-            for(BinaryTree i : firstpos.get(key)) {
-                System.out.print(i.position + "(" + i.value + ") ");
-            }
-            System.out.print("; lastpos -> ");
-            for(BinaryTree i : lastpos.get(key)) {
-                System.out.print(i.position + " ");
-            }
-            System.out.println("; nullable -> " + nullable.get(key));
-        }*/
-
         ComputeFollowpos(bt);
 
-        SimpleGraphView sgv = new SimpleGraphView(bt, followpos);
+        HashMap<Integer, ArrayList<BinaryTree>> finalfollowpos = new HashMap<Integer, ArrayList<BinaryTree>>();
+        HashMap<Integer, String> thisPosIs = new HashMap<Integer, String>();
+
+        for(BinaryTree i : followpos.keySet()) {
+            finalfollowpos.put(i.position, followpos.get(i));
+            thisPosIs.put(i.position, Character.toString(i.value));
+        }
+
+        thisPosIs.put(posAssign - 1, "$");
+
+        //End
+
+        //Graphic stuff
+
+        SimpleGraphView sgv = new SimpleGraphView(bt, finalfollowpos, thisPosIs, lang, firstpos);
         Layout<String, String> layout = new CircleLayout(sgv.g);
         layout.setSize(new Dimension(800,800));
         BasicVisualizationServer<String,String> vv =
                 new BasicVisualizationServer<String,String>(layout);
         vv.setPreferredSize(new Dimension(850,850));
         vv.getRenderContext().setVertexLabelTransformer(new ToStringLabeller());
+          vv.getRenderContext().setEdgeLabelTransformer(new ToStringLabeller());
         vv.getRenderer().getVertexLabelRenderer().setPosition(Renderer.VertexLabel.Position.CNTR);
+
 
         JFrame frame = new JFrame("Simple Graph View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
